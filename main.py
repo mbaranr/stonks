@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 from data.state import init_db, get_last_value, save_value
 from fetchers.silo import fetch_usdc_borrow_rate as fetch_silo_usdc
 from fetchers.euler import fetch_usdc_borrow_rate as fetch_euler_usdc
@@ -21,10 +23,17 @@ def main():
         fetch_euler_usdc(),
     ]
 
+    print("=" * 50)
+    print(f"Run @ {datetime.utcnow().isoformat()} UTC")
+    print("-" * 50)
+
     for item in sources:
         base_key = item["key"]
         name = item["name"]
         value = item["rate"]
+
+        # print current value
+        print(f"{name}: {value:.4%}")
 
         last_key = f"{base_key}:last"
         baseline_key = f"{base_key}:baseline"
@@ -44,7 +53,6 @@ def main():
 
         # notify on change > 1 percentage point
         delta_last = value - last
-
         if abs(delta_last) > THRESHOLD:
             direction = "⬆️" if delta_last > 0 else "⬇️"
             notify(
@@ -57,7 +65,6 @@ def main():
         # threshold check (absolute percentage points)
         if baseline is not None:
             delta = value - baseline
-
             if abs(delta) >= THRESHOLD:
                 direction = "⬆️" if delta > 0 else "⬇️"
                 notify(
@@ -71,6 +78,8 @@ def main():
 
         # always update last value
         save_value(last_key, value)
+
+    print("=" * 50)
 
 
 if __name__ == "__main__":
