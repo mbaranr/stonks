@@ -1,12 +1,3 @@
 # Stonks
 
-A minimal Python bot that monitors **USDC** borrow rates on [Silo](https://app.silo.finance/markets/avalanche/savusd-usdc-142?action=borrow) (Avalanche market 142, savUSD–USDC) and [Euler](https://app.euler.finance/positions/0xbaC3983342b805E66F8756E265b3B0DdF4B685Fc/0x37ca03aD51B8ff79aAD35FadaCBA4CEDF0C3e74e?network=avalanche) (Avalanche USDC vault), and sends Discord alerts when rates move "significantly".
-
-## What it does
-
-The bot is designed to:
-
-- track USDC borrow APR / APY
-- persist state between runs
-- send Discord webhook alerts when the borrow rate moves by **+-1.00%** from the current baseline
-- run periodically via GitHub Actions
+A Discord bot for monitoring **DeFi protocol metrics** and sending alerts when meaningful changes occur. It is designed to track multiple types of on-chain metrics (rates, caps, and more), persist state across runs, and deliver alerts directly into Discord channels.
