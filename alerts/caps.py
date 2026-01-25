@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional
 
-CAP_FULL_THRESHOLD = 0.99985   # 99.985%
+CAP_FULL_THRESHOLD = 0.99995   # 99.995%
 
 
 def handle_caps_metric(
