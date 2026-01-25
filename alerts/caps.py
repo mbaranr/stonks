@@ -1,7 +1,6 @@
 from typing import List, Dict, Optional
 
 CAP_FULL_THRESHOLD = 0.999   # 99.9%
-CAP_CLEAR_THRESHOLD = 0.995  # 99.5%
 
 
 def handle_caps_metric(
@@ -40,8 +39,8 @@ def handle_caps_metric(
             }
         )
 
-    # full -> clearly not full
-    elif was_full and value < CAP_CLEAR_THRESHOLD:
+    # full -> not full
+    elif was_full and not is_full:
         alerts.append(
             {
                 "category": "caps",
