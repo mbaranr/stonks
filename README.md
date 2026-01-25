@@ -1,6 +1,6 @@
 # Stonks
 
-A minimal Discord bot for monitoring metrics from **DeFi protocols**.
+A minimal Discord bot for monitoring **DeFi protocol** metrics.
 
 <p align="center">
   <img src="assets/pfp.jpg" alt="Stonks bot profile picture" width="300">
