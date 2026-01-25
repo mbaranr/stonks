@@ -5,13 +5,15 @@ from dotenv import load_dotenv
 
 import discord
 from discord.ext import commands, tasks
-from github import Github
+from github import Github, Auth, GithubException
 
-from notifiers.alerts import run_once
+from engine import run_once
 from storage.sqlite import (
     get_last,
     list_metrics,
 )
+
+from alerts.caps import CAP_FULL_THRESHOLD
 
 
 logging.basicConfig(
@@ -25,7 +27,6 @@ logger = logging.getLogger("stonks")
 BOT_START_TIME = time.time()
 LAST_ENGINE_RUN = None
 LAST_ENGINE_ERROR = None
-LAST_ALERT_COUNT = 0
 
 ALERT_INTERVAL_SECONDS = 5 * 60
 
@@ -97,7 +98,7 @@ def format_alert(alert: dict) -> str:
 
 @tasks.loop(seconds=ALERT_INTERVAL_SECONDS)
 async def alert_loop():
-    global LAST_ENGINE_RUN, LAST_ENGINE_ERROR, LAST_ALERT_COUNT
+    global LAST_ENGINE_RUN, LAST_ENGINE_ERROR
 
     await bot.wait_until_ready()
 
@@ -105,7 +106,6 @@ async def alert_loop():
         alerts = run_once()
         LAST_ENGINE_RUN = time.time()
         LAST_ENGINE_ERROR = None
-        LAST_ALERT_COUNT = len(alerts)
     except Exception:
         LAST_ENGINE_ERROR = time.time()
         logger.exception("Engine error")
@@ -121,11 +121,11 @@ async def alert_loop():
 async def help(ctx):
     await ctx.send(
         "🛠 **Commands**\n"
-        "`$metrics` – list metrics\n"
-        "`$check <metric_key>` – inspect metric\n"
-        "`$issue <text>` – create GitHub issue\n"
-        "`$status` – bot health\n"
-        "`$ping`\n"
+        "- `$metrics` – list metrics\n"
+        "- `$check <metric_key>` – inspect metric\n"
+        "- `$issue <text>` – create GitHub issue\n"
+        "- `$status` – bot health\n"
+        "- `$ping`\n"
     )
 
 
@@ -142,7 +142,7 @@ async def metrics(ctx):
 
     await ctx.send(
         "📈 **Known metrics:**\n" +
-        "\n".join(f"- `{m['key']}` — {m['name']}" for m in metrics)
+        "\n".join(f"- `{m['key']}` – {m['name']}" for m in metrics)
     )
 
 
@@ -158,7 +158,7 @@ async def check(ctx, metric_key: str):
 
     # caps
     if metric_key.endswith("cap"):
-        state = "🧢 AT CAP" if current >= 1.0 else "⚠️ BELOW CAP"
+        state = "🧢 AT CAP" if current >= CAP_FULL_THRESHOLD else "⚠️ BELOW CAP"
 
         await ctx.send(
             f"📊 **{name}**\n"
@@ -191,25 +191,58 @@ async def check(ctx, metric_key: str):
 
 @bot.command()
 async def status(ctx):
-    await ctx.send(
-        f"🧠 **Status**\n"
-        f"Uptime: {int((time.time() - BOT_START_TIME) / 60)}m\n"
-        f"Last alerts: {LAST_ALERT_COUNT}"
+    now = time.time()
+
+    uptime_m = int((now - BOT_START_TIME) / 60)
+
+    last_run = (
+        "never"
+        if LAST_ENGINE_RUN is None
+        else f"{int((now - LAST_ENGINE_RUN) / 60)}m ago"
     )
 
+    last_error = (
+        "never"
+        if LAST_ENGINE_ERROR is None
+        else f"{int((now - LAST_ENGINE_ERROR) / 60)}m ago"
+    )
+
+    await ctx.send(
+        f"🤖 **Bot Status**\n"
+        f"Uptime: {uptime_m}m\n"
+        f"Last engine run: {last_run}\n"
+        f"Last engine error: {last_error}\n"
+    )
 
 @bot.command()
 async def issue(ctx, *, text: str):
     if not GITHUB_TOKEN or not GITHUB_REPO:
-        await ctx.send("GitHub not configured.")
+        await ctx.send("❌ GitHub integration not configured.")
         return
 
-    repo = Github(GITHUB_TOKEN).get_repo(GITHUB_REPO)
-    issue = repo.create_issue(
-        title=f"Issue from {ctx.author}",
-        body=text,
-    )
-    await ctx.send(issue.html_url)
+    try:
+        auth = Auth.Token(GITHUB_TOKEN)
+        gh = Github(auth=auth)
+        repo = gh.get_repo(GITHUB_REPO)
+
+        issue = repo.create_issue(
+            title=f"Issue from Discord ({ctx.author})",
+            body=(
+                f"Reported by: {ctx.author}\n"
+                f"User ID: {ctx.author.id}\n"
+                f"Channel: {ctx.channel}\n\n"
+                f"{text}"
+            ),
+        )
+
+        await ctx.send(f"✅ Issue created:\n{issue.html_url}")
+
+    except GithubException as e:
+        await ctx.send(
+            f"❌ GitHub error ({e.status}): {e.data.get('message')}"
+        )
+    except Exception as e:
+        await ctx.send(f"❌ Unexpected error: `{e}`")
 
 
 @bot.command()
