@@ -1,8 +1,8 @@
 import requests
-from typing import Any
+from typing import Any, List, Dict
 
 
-EULER_VAULT_URL = (
+EULER_CLASSIC_VAULT_URL = (
     "https://app.euler.finance/api/v1/vault"
     "?chainId=43114"
     "&vaults=0xbaC3983342b805E66F8756E265b3B0DdF4B685Fc,"
@@ -12,6 +12,26 @@ EULER_VAULT_URL = (
 
 TARGET_VAULT_SYMBOL = "eUSDC-19"
 EULER_APY_SCALE = 1e27  # ray-scaled
+
+
+EULER_ETHEREUM_VAULT_URL = (
+    "https://app.euler.finance/api/v1/vault"
+    "?chainId=1"
+    "&vaults="
+    "0xba98fC35C9dfd69178AD5dcE9FA29c64554783b5,"  # PYUSD
+    "0xe1Ce9AF672f8854845E5474400B6ddC7AE458a10"   # RLUSD
+)
+
+YIELD_VAULTS = {
+    "ePYUSD-6": {
+        "key": "euler:pyusd:supply:cap",
+        "name": "Euler PYUSD Supply Cap Usage",
+    },
+    "eRLUSD-1": {
+        "key": "euler:rlusd:supply:cap",
+        "name": "Euler RLUSD Supply Cap Usage",
+    },
+}
 
 
 def _to_int(x: Any) -> int:
@@ -27,13 +47,18 @@ def _to_int(x: Any) -> int:
     raise TypeError(f"Cannot convert to int: {x}")
 
 
-def fetch() -> list[dict]:
+def fetch() -> List[Dict]:
     """
-    Fetch Euler USDC borrow APY.
+    Fetch Euler metrics:
+    - USDC borrow APY (Avalanche, classic)
+    - PYUSD supply cap usage (Ethereum, yield)
+    - RLUSD supply cap usage (Ethereum, yield)
+    """
+    metrics: List[Dict] = []
 
-    Returns a list of metric dicts.
-    """
-    r = requests.get(EULER_VAULT_URL, timeout=20)
+    # borrow apy
+
+    r = requests.get(EULER_CLASSIC_VAULT_URL, timeout=20)
     r.raise_for_status()
     data = r.json()
 
@@ -53,13 +78,47 @@ def fetch() -> list[dict]:
 
     row = info[0]
     raw = _to_int(row.get("borrowAPY"))
-    rate = raw / EULER_APY_SCALE  # decimal
+    rate = raw / EULER_APY_SCALE
 
-    return [
+    metrics.append(
         {
             "key": "euler:usdc:borrow",
             "name": "Euler USDC Borrow APY",
             "value": rate,
             "unit": "rate",
         }
-    ]
+    )
+
+    # supply cap usage
+    
+    r = requests.get(EULER_ETHEREUM_VAULT_URL, timeout=20)
+    r.raise_for_status()
+    data = r.json()
+
+    for vault_symbol, meta in YIELD_VAULTS.items():
+        vault = None
+
+        for v in data.values():
+            if isinstance(v, dict) and v.get("vaultSymbol") == vault_symbol:
+                vault = v
+                break
+
+        if not vault:
+            raise RuntimeError(f"Euler yield vault '{vault_symbol}' not found")
+
+        total_assets = _to_int(vault["totalAssets"])
+        supply_cap = _to_int(vault["supplyCap"])
+        decimals = _to_int(vault["assetDecimals"])
+
+        ratio = min(total_assets / supply_cap, 1.0) if supply_cap > 0 else 0.0
+
+        metrics.append(
+            {
+                "key": meta["key"],
+                "name": meta["name"],
+                "value": ratio,   # ratio: 0.0–1.0
+                "unit": "ratio",
+            }
+        )
+
+    return metrics
