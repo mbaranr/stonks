@@ -131,7 +131,7 @@ async def info(ctx):
         "I check metrics every 5 minutes.\n"
         "The cap threshold is 99.995%.\n"
         "Baseline for rate metrics is sticky and set on first observation.\n"
-        "Keys are set as `<protocol>:<token>:<suppy/borrow>:<metric>`.\n\n"
+        "Keys are set as `<protocol>:<token>:<supply/borrow>:<metric>`.\n\n"
 
         "GitHub: https://github.com/mbaranr/stonks"
     )
