@@ -184,18 +184,9 @@ async def check(ctx, metric_key: str):
         return
 
     # rates
-    baseline = get_last(f"{metric_key}:baseline")
-
-    if baseline is None:
-        await ctx.send(
-            f"**{name}**\n"
-            f"{current:.2%} ({time_since:.0f}{'m' if more_than_minute else 's'} ago)\n"
-
-        )
-        return
 
     await ctx.send(
-        f"**{name}**\n"
+        f"**{name}:**\n"
         f"{current:.2%} ({time_since:.0f}{'m' if more_than_minute else 's'} ago)\n"
     )
 
