@@ -35,7 +35,7 @@ def handle_caps_metric(
                 "level": "minor",
                 "metric_key": key,
                 "message": (
-                    f"🧢 {name.replace('Supply', '').replace('Borrow', '').replace('Cap', '').replace('   Usage', '')} has reached its {'**supply**' if is_supply else '**borrow**'} cap\n"
+                    f"🧢 {name.replace('Supply', '').replace('Borrow', '').replace('Cap', '').replace('   Usage', '')} reached its {'**supply**' if is_supply else '**borrow**'} cap\n"
                     f"Usage: 100.00%"
                 ),
             }
