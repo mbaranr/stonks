@@ -117,6 +117,7 @@ async def alert_loop():
 @bot.command()
 async def help(ctx):
     await ctx.send(
+        "**Commands:**\n"
         "`$metrics` – list metrics\n"
         "`$check <metric_key>` – inspect metric\n"
         "`$issue <text>` – create GitHub issue\n"
@@ -128,6 +129,7 @@ async def help(ctx):
 @bot.command()
 async def info(ctx):
     await ctx.send(
+        "**Info:**\n"
         "I check metrics every 5 minutes.\n"
         "The cap threshold is 99.995%.\n"
         "Baseline for rate metrics is sticky and set on first observation.\n"
@@ -149,6 +151,7 @@ async def metrics(ctx):
         return
     
     await ctx.send(
+        "**Known Metrics:**\n" +
         "\n".join(f"`{m['key']}` – {m['name']}" for m in metrics)
     )
 
@@ -175,7 +178,7 @@ async def check(ctx, metric_key: str):
     if metric_key.endswith("cap"):
 
         await ctx.send(
-            f"**{name}**\n"
+            f"**{name}:**\n"
             f"{current:.2%} ({time_since:.0f}{'m' if more_than_minute else 's'} ago)\n"
         )
         return
