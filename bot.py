@@ -136,6 +136,7 @@ async def info(ctx):
     await ctx.send(
         "**Info:**\n"
         "I check metrics every 5 minutes.\n"
+        "Alerts are deleted after 24 hours.\n"
         "The cap threshold is 99.995%.\n"
         "Baseline for rate metrics is sticky and set on first observation.\n"
         "Keys are set as `<protocol>:<token>:<supply/borrow>:<metric>`.\n\n"
