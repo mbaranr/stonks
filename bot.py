@@ -27,6 +27,7 @@ LAST_ENGINE_RUN = None
 LAST_ENGINE_ERROR = None
 
 ALERT_INTERVAL_SECONDS = 5 * 60
+ALERT_TTL_SECONDS = 24 * 60 * 60
 
 load_dotenv()
 
@@ -112,7 +113,10 @@ async def alert_loop():
     for alert in alerts:
         channel = bot.get_channel(CHANNELS.get(alert["category"]))
         if channel:
-            await channel.send(format_alert(alert))
+            await channel.send(
+                format_alert(alert),
+                delete_after=ALERT_TTL_SECONDS,
+            )
 
 
 @bot.command()
